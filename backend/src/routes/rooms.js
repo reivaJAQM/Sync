@@ -1,6 +1,6 @@
 const express = require('express');
 const authMiddleware = require('../middleware/auth');
-const { createRoom, getRoom, addUserToRoom, removeUserFromRoom, getUser } = require('../models/store');
+const { createRoom, getRoom, getRoomByCode, addUserToRoom, removeUserFromRoom, getUser } = require('../models/store');
 
 const router = express.Router();
 
@@ -9,6 +9,12 @@ router.post('/', authMiddleware, (req, res) => {
   if (!name) return res.status(400).json({ error: 'Room name required' });
   const room = createRoom(name, req.user.id);
   addUserToRoom(room.id, { id: req.user.id, username: req.user.username });
+  res.json(room);
+});
+
+router.get('/code/:code', authMiddleware, (req, res) => {
+  const room = getRoomByCode(req.params.code.toUpperCase());
+  if (!room) return res.status(404).json({ error: 'Room not found' });
   res.json(room);
 });
 

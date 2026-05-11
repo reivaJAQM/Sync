@@ -1,21 +1,61 @@
+const { Pool } = require('pg');
 const { v4: uuidv4 } = require('uuid');
 
-const users = new Map();
-const rooms = new Map();
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+});
 
-function createUser(username) {
-  const user = { id: uuidv4(), username };
-  users.set(user.id, user);
-  return user;
+const rooms = new Map();
+const codes = new Set();
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let code;
+  do {
+    code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+  } while (codes.has(code));
+  codes.add(code);
+  return code;
 }
 
-function getUser(id) {
-  return users.get(id);
+async function createUserDB(username, password) {
+  const id = uuidv4();
+  const result = await pool.query(
+    'INSERT INTO users (id, username, password) VALUES ($1, $2, $3) RETURNING id, username',
+    [id, username, password]
+  );
+  return result.rows[0];
+}
+
+async function getUserByUsername(username) {
+  const result = await pool.query('SELECT * FROM users WHERE username = $1', [username]);
+  return result.rows[0];
+}
+
+async function getUser(id) {
+  const result = await pool.query('SELECT id, username, profile_picture FROM users WHERE id = $1', [id]);
+  return result.rows[0];
+}
+
+async function updateUserProfilePicture(id, profilePicture) {
+  const result = await pool.query(
+    'UPDATE users SET profile_picture = $1 WHERE id = $2 RETURNING id, username, profile_picture',
+    [profilePicture, id]
+  );
+  return result.rows[0];
+}
+
+async function clearAllUsers() {
+  await pool.query('DELETE FROM users');
 }
 
 function createRoom(name, creatorId) {
   const room = {
     id: uuidv4(),
+    code: generateRoomCode(),
     name,
     creatorId,
     users: [],
@@ -31,6 +71,13 @@ function createRoom(name, creatorId) {
 
 function getRoom(id) {
   return rooms.get(id);
+}
+
+function getRoomByCode(code) {
+  for (const room of rooms.values()) {
+    if (room.code === code) return room;
+  }
+  return null;
 }
 
 function deleteRoom(id) {
@@ -85,10 +132,14 @@ function playNext(roomId) {
 }
 
 module.exports = {
-  createUser,
+  createUserDB,
+  getUserByUsername,
   getUser,
+  clearAllUsers,
+  updateUserProfilePicture,
   createRoom,
   getRoom,
+  getRoomByCode,
   deleteRoom,
   addUserToRoom,
   removeUserFromRoom,
