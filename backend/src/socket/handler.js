@@ -28,6 +28,31 @@ function setupSocketHandlers(io) {
       return room.currentTime;
     }
 
+    function emitSystemMessage(roomId, message) {
+      io.to(roomId).emit('chat:message', {
+        type: 'system',
+        id: `system-${socket.id}-${Date.now()}`,
+        message,
+        timestamp: Date.now(),
+      });
+    }
+
+    function leaveCurrentRoom() {
+      if (!currentRoomId) return;
+
+      const roomId = currentRoomId;
+      currentRoomId = null;
+      const room = removeUserFromRoom(roomId, socket.user.id);
+
+      if (room) {
+        io.to(roomId).emit('room:users', room.users);
+        io.to(roomId).emit('room:host', room.creatorId);
+        emitSystemMessage(roomId, `${socket.user.username} salió de la sala`);
+      }
+
+      socket.leave(roomId);
+    }
+
     socket.on('room:join', async ({ roomId }) => {
       currentRoomId = roomId;
       socket.join(roomId);
@@ -43,6 +68,7 @@ function setupSocketHandlers(io) {
         io.to(roomId).emit('room:users', room.users);
         // Tell everyone who the host is
         io.to(roomId).emit('room:host', room.creatorId);
+        emitSystemMessage(roomId, `${socket.user.username} se unió a la sala`);
 
         const computedTime = getRoomCurrentTime(room);
         socket.emit('room:state', {
@@ -56,16 +82,7 @@ function setupSocketHandlers(io) {
     });
 
     socket.on('room:leave', () => {
-      if (currentRoomId) {
-        const room = removeUserFromRoom(currentRoomId, socket.user.id);
-        if (room) {
-          io.to(currentRoomId).emit('room:users', room.users);
-          // Notify new host if the old one left
-          io.to(currentRoomId).emit('room:host', room.creatorId);
-        }
-        socket.leave(currentRoomId);
-        currentRoomId = null;
-      }
+      leaveCurrentRoom();
     });
 
     // Only host can play a new video
@@ -161,7 +178,7 @@ function setupSocketHandlers(io) {
       }
     });
 
-    socket.on('chat:message', async ({ roomId, message }) => {
+    socket.on('chat:message', async ({ roomId, message, replyTo }) => {
       const dbUser = await getUser(socket.user.id);
       io.to(roomId).emit('chat:message', {
         id: socket.id + Date.now(),
@@ -169,19 +186,14 @@ function setupSocketHandlers(io) {
         username: socket.user.username,
         profilePicture: dbUser ? dbUser.profile_picture : null,
         message,
+        replyTo,
         timestamp: Date.now(),
       });
     });
 
     socket.on('disconnect', () => {
       console.log(`User disconnected: ${socket.user.username}`);
-      if (currentRoomId) {
-        const room = removeUserFromRoom(currentRoomId, socket.user.id);
-        if (room) {
-          io.to(currentRoomId).emit('room:users', room.users);
-          io.to(currentRoomId).emit('room:host', room.creatorId);
-        }
-      }
+      leaveCurrentRoom();
     });
   });
 }

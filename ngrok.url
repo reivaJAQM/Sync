@@ -1,0 +1,12 @@
+t=2026-05-10T22:03:30-0500 lvl=info msg="no configuration paths supplied"
+t=2026-05-10T22:03:30-0500 lvl=info msg="using configuration at default config path" path="/Users/alejandro/Library/Application Support/ngrok/ngrok.yml"
+t=2026-05-10T22:03:30-0500 lvl=info msg="open config file" path="/Users/alejandro/Library/Application Support/ngrok/ngrok.yml" err=nil
+t=2026-05-10T22:03:30-0500 lvl=info msg="FIPS 140 mode" enabled=false
+t=2026-05-10T22:03:30-0500 lvl=info msg="starting web service" obj=web addr=127.0.0.1:4040 allow_hosts=[]
+t=2026-05-10T22:03:31-0500 lvl=info msg="client session established" obj=tunnels.session
+t=2026-05-10T22:03:31-0500 lvl=info msg="tunnel session started" obj=tunnels.session
+t=2026-05-10T22:03:31-0500 lvl=info msg="started tunnel" obj=tunnels name=command_line addr=http://localhost:3001 url=https://luba-enterologic-jessenia.ngrok-free.dev
+t=2026-05-10T22:03:37-0500 lvl=info msg="join connections" obj=join id=0139fdd0f190 l=[::1]:3001 r=[2800:bf0:a006:1012:f885:9aca:44ec:fad3]:49533
+t=2026-05-10T22:10:26-0500 lvl=info msg="received stop request" obj=app stopReq="{err:<nil> restart:false}"
+t=2026-05-10T22:10:26-0500 lvl=info msg="session closing" obj=tunnels.session err=nil
+t=2026-05-10T22:10:26-0500 lvl=info msg="accept failed" obj=tunnels.session obj=csess id=0e4b929556a0 err="reconnecting session closed"
